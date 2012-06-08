@@ -4,25 +4,29 @@ using System.Text;
 
 namespace MqttLib.Core.Messages
 {
-    internal class MqttConnectMessage : MqttMessage
-    {
-        /// <summary>
-        /// The version of the MQTT protocol we are using
-        /// </summary>
-        private const byte VERSION = 3;
+		internal class MqttConnectMessage : MqttMessage
+		{
+				/// <summary>
+				/// The version of the MQTT protocol we are using
+				/// </summary>
+				private const byte VERSION = 3;
 
-        private ushort _keepAlive;
-        private byte[] _clientID;
+				private ushort _keepAlive;
+				private byte[] _clientID;
 
-        private byte _connectFlags;
-        private bool _containsWill;
-        private string _willTopic;
-        private byte[] _willPayload;
+				private byte _connectFlags;
+				private bool _containsWill;
+				private bool _containsUserName;
+				private bool _containsPassword;
+				private string _willTopic;
+				private byte[] _willPayload;
+				private string _userName;
+				private string _password;
 
-        /// <summary>
-        /// Constant description of the protocol
-        /// </summary>
-        private byte[] protocolDesc = new byte[]
+				/// <summary>
+				/// Constant description of the protocol
+				/// </summary>
+				private byte[] protocolDesc = new byte[]
             {
                 0,
                 6,
@@ -35,82 +39,159 @@ namespace MqttLib.Core.Messages
                 VERSION
             };
 
-        private void SetConnectVariableHeaderCommon(string clientID, ushort keepAlive)
-        {
-          _keepAlive = keepAlive;
-          _clientID = enc.GetBytes(clientID);
-          base.variableHeaderLength = (
-            protocolDesc.Length + //Length of the protocol description
-            3 +                   //Connect Flags + Keep alive
-            _clientID.Length +    // Length of the client ID string
-            2                     // The length of the length of the clientID
-          );
-        }
+				private void SetConnectVariableHeaderCommon(string clientID, ushort keepAlive)
+				{
+						_keepAlive = keepAlive;
+						_clientID = enc.GetBytes(clientID);
+						base.variableHeaderLength = (
+							protocolDesc.Length + //Length of the protocol description
+							3 +                   //Connect Flags + Keep alive
+							_clientID.Length +    // Length of the client ID string
+							2                     // The length of the length of the clientID
+						);
+				}
 
-        public MqttConnectMessage(string clientID, ushort keepAlive, bool cleanStart)
-          : base(MessageType.CONNECT)
-        {
-          SetConnectVariableHeaderCommon(clientID, keepAlive);
-          _containsWill = false;
-          _connectFlags = (byte)(cleanStart ? 0x02:0) ;
-        }
+				public MqttConnectMessage(string clientID, ushort keepAlive, bool cleanStart)
+						: base(MessageType.CONNECT)
+				{
+						SetConnectVariableHeaderCommon(clientID, keepAlive);
+						_containsWill = false;
+						_containsUserName = false;
+						_containsPassword = false;
+						_connectFlags = (byte)(cleanStart ? 0x02 : 0);
+				}
 
-        // TODO: Add a constructor containing WillTopic and WillMessage
-        public MqttConnectMessage(
-          string clientID, ushort keepAlive,
-          string willTopic, byte[] willPayload,
-          QoS willQos, bool willRetained, bool cleanStart
-        ) : base(MessageType.CONNECT)
-        {
-          SetConnectVariableHeaderCommon(clientID, keepAlive);
+				public MqttConnectMessage(
+					string clientID, ushort keepAlive,
+					string willTopic, byte[] willPayload,
+					QoS willQos, bool willRetained, bool cleanStart
+				)
+						: base(MessageType.CONNECT)
+				{
+						SetConnectVariableHeaderCommon(clientID, keepAlive);
 
-          _containsWill = true;
-          _willTopic = willTopic;
-          _willPayload = willPayload;
+						_containsWill = true;
+						_willTopic = willTopic;
+						_willPayload = willPayload;
+						_containsUserName = false;
+						_containsPassword = false;
 
-          _connectFlags = (byte) (
-            0x04                      | // LWT enabled
-            (willRetained ? 0x20 : 0) | // LWT is retained?
-            (cleanStart ? 0x02 : 0)   | // Clean Start
-            ((byte)willQos) << 3        // LWT QoS
-          );
+						_connectFlags = (byte)(
+							0x04 | // LWT enabled
+							(willRetained ? 0x20 : 0) | // LWT is retained?
+							(cleanStart ? 0x02 : 0) | // Clean Start
+							((byte)willQos) << 3        // LWT QoS
+						);
 
-          base.variableHeaderLength += (
-            _willTopic.Length +
-            _willPayload.Length +
-            4
-          );
-        }
+						base.variableHeaderLength += (
+							_willTopic.Length +
+							_willPayload.Length +
+							4
+						);
+				}
 
-        protected override void SendPayload(System.IO.Stream str)
-        {
-            str.Write(protocolDesc, 0, protocolDesc.Length);
+				public MqttConnectMessage(
+					string clientID, ushort keepAlive,
+					string userName, string password, bool cleanStart
+				)
+						: base(MessageType.CONNECT)
+				{
+						SetConnectVariableHeaderCommon(clientID, keepAlive);
 
-            // TODO: Implement Clean Session Flag
-            str.WriteByte(_connectFlags);
+						_containsWill = false;
+						_userName = userName;
+						_password = password;
+						_containsUserName = true;
+						_containsPassword = true;
 
-            // Write the keep alive value
-            WriteToStream(str, _keepAlive);
-            
-            // Write the payload
-            WriteToStream(str, (ushort)_clientID.Length);
-            str.Write(_clientID, 0, _clientID.Length);
+						_connectFlags = (byte)(
+							(cleanStart ? 0x02 : 0) |					// Clean Start
+							(_containsPassword ? 0x40 : 0) |	// Password
+							(_containsUserName ? 0x80 : 0)		// Username
+						);
 
-            if (_containsWill)
-            {
-              // Write the will topic
-              WriteToStream(str, _willTopic);
+						base.variableHeaderLength += (
+							_userName.Length +
+							_password.Length +
+							4
+						);
+				}
 
-              // Write the will payload
-              WriteToStream(str, (ushort)_willPayload.Length);
-              str.Write(_willPayload, 0, _willPayload.Length);
-            }
+			public MqttConnectMessage(
+				string clientID, ushort keepAlive,
+				string userName, string password,
+				string willTopic, byte[] willPayload,
+				QoS willQos, bool willRetained, bool cleanStart
+			)
+					: base(MessageType.CONNECT)
+				{
+						SetConnectVariableHeaderCommon(clientID, keepAlive);
 
-        }
+						_containsWill = true;
+						_userName = userName;
+						_password = password;
+						_willTopic = willTopic;
+						_willPayload = willPayload;
+						_containsUserName = true;
+						_containsPassword = true;
 
-        protected override void ConstructFromStream(System.IO.Stream str)
-        {
-            throw new Exception("The method or operation is not implemented.");
-        }
-    }
+						_connectFlags = (byte)(
+							0x04 |														// LWT enabled
+							(willRetained ? 0x20 : 0) |				// LWT is retained?
+							(cleanStart ? 0x02 : 0) |					// Clean Start
+							(_containsPassword ? 0x40 : 0) |	// Password
+							(_containsUserName ? 0x80 : 0) |	// Username
+							((byte)willQos) << 3							// LWT QoS
+						);
+
+						base.variableHeaderLength += (
+							_willTopic.Length +
+							_willPayload.Length +
+							_userName.Length +
+							_password.Length +
+							4
+						);
+				}
+
+				protected override void SendPayload(System.IO.Stream str)
+				{
+						str.Write(protocolDesc, 0, protocolDesc.Length);
+
+						// TODO: Implement Clean Session Flag
+						str.WriteByte(_connectFlags);
+
+						// Write the keep alive value
+						WriteToStream(str, _keepAlive);
+
+						// Write the payload
+						WriteToStream(str, (ushort)_clientID.Length);
+						str.Write(_clientID, 0, _clientID.Length);
+
+						if (_containsWill)
+						{
+								// Write the will topic
+								WriteToStream(str, _willTopic);
+
+								// Write the will payload
+								WriteToStream(str, (ushort)_willPayload.Length);
+								str.Write(_willPayload, 0, _willPayload.Length);
+						}
+						if (_containsUserName)
+						{
+								// TODO write username
+								WriteToStream(str, _userName);
+						}
+						if (_containsPassword)
+						{
+								// TODO write password
+								WriteToStream(str, _password);
+						}
+
+				}
+
+				protected override void ConstructFromStream(System.IO.Stream str)
+				{
+						throw new Exception("The method or operation is not implemented.");
+				}
+		}
 }

@@ -36,7 +36,45 @@ namespace MqttLib
     /// <param name="cleanStart">If true, all previous subscriptions and pending messages for client are lost</param>
     void Connect(string willTopic, QoS willQoS, MqttPayload willMsg, bool willRetain, bool cleanStart);
 
-    /// <summary>
+	/// <summary>
+	/// Connect to the MQTT message broker specifying username and password
+	/// </summary>
+	/// <param name="userName">User Name</param>
+	/// <param name="password">Password</param>
+	void Connect(string userName, string password);
+
+	/// <summary>
+	/// Connect to the MQTT message broker specifying username, password and clean start
+	/// </summary>
+	/// <param name="userName">User Name</param>
+	/// <param name="password">Password</param>
+	/// <param name="cleanStart">If true, all previous subscriptions and pending messages for client are lost</param>
+	void Connect(string userName, string password, bool cleanStart);
+
+	/// <summary>
+	/// Connect to the MQTT message broker specifying username, password, and last will & testament (LWT)
+	/// </summary>
+	/// <param name="userName">User Name</param>
+	/// <param name="password">Password</param>
+	/// <param name="willTopic">Destination of LWT</param>
+	/// <param name="willQoS">QoS of LWT</param>
+	/// <param name="willMsg">Message body of LWT</param>
+	/// <param name="willRetain">Whether LWT is retained</param>
+	void Connect(string userName, string password, string willTopic, QoS willQoS, MqttPayload willMsg, bool willRetain);
+
+	/// <summary>
+	/// Connect to the MQTT message broker specifying username, password, last will & testament (LWT) and clean start
+	/// </summary>
+	/// <param name="userName">User Name</param>
+	/// <param name="password">Password</param>
+	/// <param name="willTopic">Destination of LWT</param>
+	/// <param name="willQoS">QoS of LWT</param>
+	/// <param name="willMsg">Message body of LWT</param>
+	/// <param name="willRetain">Whether LWT is retained</param>
+	/// <param name="cleanStart">If true, all previous subscriptions and pending messages for client are lost</param>
+	void Connect(string userName, string password, string willTopic, QoS willQoS, MqttPayload willMsg, bool willRetain, bool cleanStart);
+
+	/// <summary>
     /// Disconnect from the MQTT message broker
     /// </summary>
     void Disconnect();

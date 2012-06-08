@@ -148,7 +148,35 @@ namespace MqttLib
           ));
         }
 
-        private void DoConnect(MqttConnectMessage conmsg)
+		public void Connect(string userName, string password)
+		{
+			DoConnect(new MqttConnectMessage(
+			  _clientID, _keepAlive, userName, password, false
+			));
+		}
+
+		public void Connect(string userName, string password, bool cleanStart)
+		{
+			DoConnect(new MqttConnectMessage(
+			  _clientID,_keepAlive,userName,password,cleanStart
+			));
+		}
+
+		public void Connect(string username, string password,string willTopic, QoS willQoS, MqttPayload willMsg, bool willRetain)
+		{
+			DoConnect(new MqttConnectMessage(
+			  _clientID, _keepAlive,username,password, willTopic, willMsg.TrimmedBuffer, willQoS, willRetain, false
+			));
+		}
+
+		public void Connect(string username, string password,string willTopic, QoS willQoS, MqttPayload willMsg, bool willRetain, bool cleanStart)
+		{
+			DoConnect(new MqttConnectMessage(
+			  _clientID, _keepAlive,username,password, willTopic, willMsg.TrimmedBuffer, willQoS, willRetain, cleanStart
+			));
+		}
+
+		private void DoConnect(MqttConnectMessage conmsg)
         {
             try
             {
